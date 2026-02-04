@@ -1,0 +1,63 @@
+#compdef defenders
+# Zsh completion for defenders CLI
+
+_defenders() {
+    local line state
+
+    _arguments -C \
+        '1: :->command' \
+        '*::arg:->args'
+
+    case $state in
+        command)
+            _arguments '1:Commands:(conf get-token cado prme release pr help)'
+            ;;
+        args)
+            case $line[1] in
+                conf)
+                    _arguments \
+                        '(-s --show)'{-s,--show}'[Show current configuration]' \
+                        '(-p --path)'{-p,--path}'[Show configuration file path]' \
+                        '(-r --reset)'{-r,--reset}'[Reset configuration]' \
+                        '(-h --help)'{-h,--help}'[Show help]'
+                    ;;
+                get-token)
+                    _arguments \
+                        '(-h --help)'{-h,--help}'[Show help]'
+                    ;;
+                cado)
+                    _arguments \
+                        '(-u --url)'{-u,--url}'[Azure DevOps URL]:url:' \
+                        '(-j --json)'{-j,--json}'[JSON data]:json:' \
+                        '(-h --help)'{-h,--help}'[Show help]'
+                    ;;
+                prme)
+                    _arguments \
+                        '(-t --title)'{-t,--title}'[PR title]:title:' \
+                        '(-d --description)'{-d,--description}'[PR description]:description:' \
+                        '(-s --source)'{-s,--source}'[Source branch]:branch:' \
+                        '(-b --target)'{-b,--target}'[Target branch]:branch:' \
+                        '(-h --help)'{-h,--help}'[Show help]'
+                    ;;
+                release)
+                    _arguments \
+                        '(-u --url)'{-u,--url}'[Pipeline URL]:url:' \
+                        '(-m --monitor)'{-m,--monitor}'[Monitor and trigger]' \
+                        '(-h --help)'{-h,--help}'[Show help]'
+                    ;;
+                pr)
+                    _arguments \
+                        '(-u --url)'{-u,--url}'[Pull request URL]:url:' \
+                        '(-a --approve)'{-a,--approve}'[Approve PR]' \
+                        '(-c --complete)'{-c,--complete}'[Complete PR]' \
+                        '(-h --help)'{-h,--help}'[Show help]'
+                    ;;
+                help)
+                    _arguments '1:Commands:(conf get-token cado prme release pr)'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_defenders "$@"
