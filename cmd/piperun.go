@@ -141,12 +141,8 @@ func (p *PiperunCmd) runPipeline() {
 		os.Exit(1)
 	}
 
+	// Get PAT (optional - if not provided, will use az login identity)
 	pat := utils.GetPAT(p.PAT)
-	if pat == "" {
-		fmt.Fprintln(os.Stderr, "Error: PAT is required. Run 'defenders conf' or set ADO_PAT environment variable.")
-		fmt.Fprintln(os.Stderr, "Create a PAT at: https://dev.azure.com/{your-org}/_usersSettings/tokens")
-		os.Exit(1)
-	}
 
 	orgURL, project, queryParams, err := parseADOUrl(p.PipelineURL)
 	if err != nil {
@@ -163,8 +159,8 @@ func (p *PiperunCmd) runPipeline() {
 	fmt.Printf("Triggering pipeline: %s\n", p.PipelineURL)
 	fmt.Printf("Project: %s, Definition ID: %s\n", project, definitionID)
 
-	// Run pipeline using az CLI
-	stdout, stderr, err := utils.RunCommand("az", "pipelines", "run",
+	// Run pipeline using az CLI (with PAT if provided, otherwise az login)
+	stdout, stderr, err := utils.RunCommandWithOptionalPAT(pat, "az", "pipelines", "run",
 		"--id", definitionID,
 		"--org", orgURL,
 		"--project", project,
@@ -199,11 +195,8 @@ func (p *PiperunCmd) monitorAndTrigger() {
 		os.Exit(1)
 	}
 
+	// Get PAT (optional - if not provided, will use az login identity)
 	pat := utils.GetPAT(p.PAT)
-	if pat == "" {
-		fmt.Fprintln(os.Stderr, "Error: PAT is required. Run 'defenders conf' or set ADO_PAT environment variable.")
-		os.Exit(1)
-	}
 
 	interval := p.Interval
 	if interval <= 0 {
@@ -240,8 +233,8 @@ func (p *PiperunCmd) monitorAndTrigger() {
 	fmt.Printf("Check interval: %d seconds\n\n", interval)
 
 	for {
-		// Get build status
-		stdout, stderr, err := utils.RunCommand("az", "pipelines", "runs", "show",
+		// Get build status (with PAT if provided, otherwise az login)
+		stdout, stderr, err := utils.RunCommandWithOptionalPAT(pat, "az", "pipelines", "runs", "show",
 			"--id", buildID,
 			"--org", waitOrgURL,
 			"--project", project,
@@ -284,7 +277,7 @@ func (p *PiperunCmd) monitorAndTrigger() {
 			if result == "succeeded" {
 				fmt.Println("Triggering second pipeline...")
 
-				stdout, stderr, err := utils.RunCommand("az", "pipelines", "run",
+				stdout, stderr, err := utils.RunCommandWithOptionalPAT(pat, "az", "pipelines", "run",
 					"--id", definitionID,
 					"--org", triggerOrgURL,
 					"--project", triggerProject,

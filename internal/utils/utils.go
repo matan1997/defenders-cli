@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -78,6 +79,40 @@ func RunCommandWithOutput(name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// RunCommandWithPAT executes a command with AZURE_DEVOPS_EXT_PAT environment variable set
+// This is used for Azure CLI commands that need PAT authentication
+// It also isolates the Azure config to prevent fallback to az login credentials
+func RunCommandWithPAT(pat string, name string, args ...string) (string, string, error) {
+	cmd := exec.Command(name, args...)
+
+	// Create isolated Azure config directory to prevent using az login credentials
+	// Uses os.TempDir() for cross-platform compatibility (Linux/Mac: /tmp, Windows: %TEMP%)
+	isolatedConfigDir := filepath.Join(os.TempDir(), "defenders-az-isolated")
+	os.MkdirAll(isolatedConfigDir, 0755)
+
+	// Inherit current environment and add/override PAT + isolated config
+	cmd.Env = append(os.Environ(),
+		"AZURE_DEVOPS_EXT_PAT="+pat,
+		"AZURE_CONFIG_DIR="+isolatedConfigDir,
+	)
+
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	return stdout.String(), stderr.String(), err
+}
+
+// RunCommandWithOptionalPAT executes a command, using PAT authentication if provided
+// If pat is empty, it falls back to az login identity
+func RunCommandWithOptionalPAT(pat string, name string, args ...string) (string, string, error) {
+	if pat != "" {
+		return RunCommandWithPAT(pat, name, args...)
+	}
+	return RunCommand(name, args...)
 }
 
 // GetEnvOrDefault returns environment variable value or default if not set

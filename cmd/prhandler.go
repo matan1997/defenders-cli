@@ -47,13 +47,12 @@ type PrhandlerCmd struct {
 // Supports:
 // - https://dev.azure.com/{org}/{project}/_git/{repo}/pullrequest/{pr_id}
 // - https://{org}.visualstudio.com/{project}/_git/{repo}/pullrequest/{pr_id}
-func parsePRUrl(rawURL string) (orgURL, project, repository string, prID string, err error) {
+func parsePRUrl(rawURL string) (project, repository string, prID string, err error) {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
-	orgURL = fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	pathParts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
 
 	// Find indices for _git and pullrequest
@@ -68,8 +67,8 @@ func parsePRUrl(rawURL string) (orgURL, project, repository string, prID string,
 		}
 	}
 
-	if gitIndex == -1 || prIndex == -1 {
-		return "", "", "", "", fmt.Errorf("invalid PR URL format")
+	if gitIndex == -1 || prIndex == -1 || gitIndex < 1 || prIndex+1 >= len(pathParts) {
+		return "", "", "", fmt.Errorf("invalid PR URL format")
 	}
 
 	// Project is the part right before _git
@@ -77,7 +76,7 @@ func parsePRUrl(rawURL string) (orgURL, project, repository string, prID string,
 	repository = pathParts[gitIndex+1]
 	prID = pathParts[prIndex+1]
 
-	return orgURL, project, repository, prID, nil
+	return project, repository, prID, nil
 }
 
 func (p *PrhandlerCmd) Run() {
@@ -94,19 +93,17 @@ func (p *PrhandlerCmd) Run() {
 		os.Exit(1)
 	}
 
-	// Get PAT
+	// Get PAT (optional - if not provided, will use az login identity)
 	pat := utils.GetPAT(p.PAT)
-	if pat == "" {
-		fmt.Fprintln(os.Stderr, "Error: PAT is required. Run 'defenders conf' or set ADO_PAT environment variable.")
-		fmt.Fprintln(os.Stderr, "Get yours from https://msazure.visualstudio.com/_usersSettings/tokens")
-		os.Exit(1)
-	}
 
-	orgURL, project, repository, prID, err := parsePRUrl(p.PRURL)
+	project, repository, prID, err := parsePRUrl(p.PRURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error parsing PR URL: %s\n", err)
 		os.Exit(1)
 	}
+
+	// Get organization from config
+	orgURL := utils.GetOrganization("")
 
 	// Determine vote value
 	// Vote values: 10 = approved, 5 = approved with suggestions, 0 = no vote, -5 = waiting for author, -10 = rejected
@@ -127,12 +124,23 @@ func (p *PrhandlerCmd) Run() {
 	fmt.Printf("Action: %s\n", action)
 
 	// Use az repos pr set-vote command
-	stdout, stderr, err := utils.RunCommand("az", "repos", "pr", "set-vote",
-		"--id", prID,
-		"--vote", vote,
-		"--org", orgURL,
-		"-o", "json",
-	)
+	// If PAT is provided, use it; otherwise rely on az login
+	var stdout, stderr string
+	if pat != "" {
+		stdout, stderr, err = utils.RunCommandWithPAT(pat, "az", "repos", "pr", "set-vote",
+			"--id", prID,
+			"--vote", vote,
+			"--org", orgURL,
+			"-o", "json",
+		)
+	} else {
+		stdout, stderr, err = utils.RunCommand("az", "repos", "pr", "set-vote",
+			"--id", prID,
+			"--vote", vote,
+			"--org", orgURL,
+			"-o", "json",
+		)
+	}
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", stderr)
