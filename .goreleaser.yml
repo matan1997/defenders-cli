@@ -1,0 +1,113 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: defenders-cli
+    main: ./main.go
+    binary: defenders
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - id: defenders-cli
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    formats:
+      - tar.gz
+      - zip
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Performance improvements'
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+
+release:
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Defenders CLI Release {{ .Tag }}
+    
+    ### Installation
+    
+    Download the appropriate binary for your platform below.
+    
+    #### Linux (x86_64)
+    ```bash
+    # Download and extract
+    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Linux_x86_64.tar.gz | tar xz
+    # Move to PATH
+    sudo mv defenders /usr/local/bin/
+    # Verify installation
+    defenders --help
+    ```
+    
+    #### Linux (ARM64)
+    ```bash
+    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Linux_arm64.tar.gz | tar xz
+    sudo mv defenders /usr/local/bin/
+    ```
+    
+    #### macOS (Intel)
+    ```bash
+    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Darwin_x86_64.tar.gz | tar xz
+    sudo mv defenders /usr/local/bin/
+    ```
+    
+    #### macOS (Apple Silicon)
+    ```bash
+    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Darwin_arm64.tar.gz | tar xz
+    sudo mv defenders /usr/local/bin/
+    ```
+    
+    #### Windows
+    Download the ZIP file for your architecture and extract `defenders.exe` to a location in your PATH.
