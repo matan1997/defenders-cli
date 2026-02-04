@@ -84,7 +84,7 @@ release:
     #### Linux (x86_64)
     ```bash
     # Download and extract
-    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Linux_x86_64.tar.gz | tar xz
+    curl -L {{ .ReleaseURL }}/download/{{ .Tag }}/defenders-cli_Linux_x86_64.tar.gz | tar xz
     # Move to PATH
     sudo mv defenders /usr/local/bin/
     # Verify installation
@@ -93,19 +93,19 @@ release:
     
     #### Linux (ARM64)
     ```bash
-    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Linux_arm64.tar.gz | tar xz
+    curl -L {{ .ReleaseURL }}/download/{{ .Tag }}/defenders-cli_Linux_arm64.tar.gz | tar xz
     sudo mv defenders /usr/local/bin/
     ```
     
     #### macOS (Intel)
     ```bash
-    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Darwin_x86_64.tar.gz | tar xz
+    curl -L {{ .ReleaseURL }}/download/{{ .Tag }}/defenders-cli_Darwin_x86_64.tar.gz | tar xz
     sudo mv defenders /usr/local/bin/
     ```
     
     #### macOS (Apple Silicon)
     ```bash
-    curl -L https://github.com/{{ .Env.GITHUB_REPOSITORY_OWNER | default "YOUR_USERNAME" }}/{{ .ProjectName }}/releases/download/{{ .Tag }}/defenders-cli_Darwin_arm64.tar.gz | tar xz
+    curl -L {{ .ReleaseURL }}/download/{{ .Tag }}/defenders-cli_Darwin_arm64.tar.gz | tar xz
     sudo mv defenders /usr/local/bin/
     ```
     
